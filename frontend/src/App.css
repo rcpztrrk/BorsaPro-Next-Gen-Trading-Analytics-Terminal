@@ -1,0 +1,672 @@
+:root {
+  --bg-color: #0d1117;
+  --sidebar-bg: #161b22;
+  --panel-bg: rgba(22, 27, 34, 0.7);
+  /* Glassmorphism base */
+  --border-color: #30363d;
+  --text-main: #c9d1d9;
+  --text-dim: #8b949e;
+  --accent: #2962ff;
+  --green: #26a69a;
+  --red: #ef5350;
+  --neon-green: #39ff14;
+  /* For Strong Buy neon */
+  --font-mono: 'Roboto Mono', monospace;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-color);
+}
+
+/* 1. Sidebar (Thin - Left) */
+.sidebar {
+  width: 64px;
+  flex-shrink: 0;
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-top: 20px;
+  z-index: 100;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar:hover {
+  width: 200px;
+}
+
+.sidebar .logo {
+  font-weight: bold;
+  margin-bottom: 2rem;
+  padding: 0 22px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  color: white;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sidebar .logo span {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  margin-left: 10px;
+  font-size: 0.9rem;
+}
+
+.sidebar:hover .logo span {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sidebar nav {
+  width: 100%;
+}
+
+.sidebar nav button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  width: 100%;
+  padding: 15px 22px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.sidebar nav button span {
+  opacity: 0;
+  visibility: hidden;
+  width: 0;
+  margin-left: 0;
+  transition: opacity 0.2s, margin-left 0.2s, width 0.2s;
+  pointer-events: none;
+  display: inline-block;
+  overflow: hidden;
+}
+
+.sidebar:hover nav button span {
+  opacity: 1;
+  visibility: visible;
+  width: auto;
+  margin-left: 15px;
+}
+
+
+.sidebar nav button:hover,
+.sidebar nav button.active {
+  color: var(--text-main);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* 2. Main Content Grid */
+.main-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  /* Chart Area | Right Panel */
+  grid-template-rows: 64px 1fr;
+  /* Top Bar | Content */
+  height: 100vh;
+}
+
+.top-bar {
+  grid-column: 1 / span 2;
+  height: 64px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  justify-content: space-between;
+  background-color: var(--bg-color);
+}
+
+/* 3. Chart Section (Floating Toolbar) */
+.chart-section {
+  position: relative;
+  border-right: 1px solid var(--border-color);
+  /* Net Divider */
+  background: radial-gradient(circle at center, #1b2129 0%, #0d1117 100%);
+}
+
+.chart-toolbar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 6px;
+  display: flex;
+  gap: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* 4. Fundamental Section (Right Panel - Glassmorphism) */
+.fundamental-section {
+  background-color: var(--bg-color);
+  overflow-y: auto;
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.fundamental-panel {
+  padding: 24px;
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.glass-card {
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  transition: transform 0.2s;
+}
+
+.glass-card:hover {
+  border-color: rgba(41, 153, 255, 0.4);
+}
+
+/* 5. Typography & Numbers */
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: -0.5px;
+}
+
+.panel-header {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+}
+
+.stock-title h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: white;
+}
+
+.sector-badge {
+  font-size: 0.7rem;
+  background: rgba(41, 98, 255, 0.1);
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.price-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.current-price {
+  font-size: 1.8rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.price-change {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.price-change.pos {
+  color: var(--green);
+}
+
+.price-change.neg {
+  color: var(--red);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.metric-item {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.metric-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  margin-bottom: 4px;
+}
+
+.metric-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #eee;
+}
+
+.ai-summary-box {
+  background: rgba(41, 98, 255, 0.05);
+  border: 1px solid rgba(41, 98, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.ai-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ai-header h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.analysis-gauge {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  margin-bottom: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.gauge-fill {
+  height: 100%;
+}
+
+.gauge-label {
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: var(--green);
+}
+
+.ai-text {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-main);
+  margin: 6px 0 0;
+}
+
+.company-info-box h4 {
+  font-size: 0.85rem;
+  margin: 0 0 8px;
+  color: var(--text-dim);
+}
+
+.summary-text {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+/* Loading Skeleton */
+@keyframes pulse {
+  0% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+
+  100% {
+    opacity: 0.4;
+  }
+}
+
+.skeleton-line {
+  background: var(--border-color);
+  animation: pulse 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.skeleton-item {
+  height: 50px;
+  background: var(--border-color);
+  animation: pulse 1.5s infinite;
+  border-radius: 6px;
+}
+
+/* Fintech Component Styles */
+.q-row-fintech {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.q-row-fintech:last-child {
+  border-bottom: none;
+}
+
+.q-labels-fintech {
+  display: flex;
+  flex-direction: column;
+}
+
+.q-name {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 2px;
+}
+
+.q-val-main {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.q-badges-fintech {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.q-badge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-align: right;
+  min-width: 60px;
+  font-family: var(--font-mono);
+}
+
+.q-badge.pos {
+  background: rgba(38, 166, 154, 0.12);
+  color: var(--green);
+  border: 1px solid rgba(38, 166, 154, 0.2);
+}
+
+.q-badge.neg {
+  background: rgba(239, 83, 80, 0.12);
+  color: var(--red);
+  border: 1px solid rgba(239, 83, 80, 0.2);
+}
+
+.rec-badge-large {
+  display: inline-block;
+  background: var(--accent);
+  color: white;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 900;
+  margin: 16px 0;
+  letter-spacing: 2px;
+  text-align: center;
+  transition: 0.3s;
+}
+
+.strong-buy-glow {
+  background: #26a69a !important;
+  box-shadow: 0 0 20px rgba(38, 166, 154, 0.4), 0 0 40px rgba(38, 166, 154, 0.2);
+  border: 1px solid var(--neon-green);
+  color: white !important;
+  animation: pulse-neon 2s infinite;
+}
+
+@keyframes pulse-neon {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(38, 166, 154, 0.4);
+  }
+
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 30px rgba(38, 166, 154, 0.6);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(38, 166, 154, 0.4);
+  }
+}
+
+.potential-hero {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  font-family: var(--font-mono);
+}
+
+.potential-hero.pos {
+  color: var(--green);
+}
+
+.potential-hero.neg {
+  color: var(--red);
+}
+
+.balance-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 10px;
+}
+
+.balance-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.balance-item label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+/* 6. Financial Analysis Tabs & Sparklines */
+.financial-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 24px;
+}
+
+.financial-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  background: rgba(41, 98, 255, 0.1);
+}
+
+.tab-content {
+  padding: 0 24px 24px 24px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.financial-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  gap: 12px;
+}
+
+.financial-row:last-child {
+  border-bottom: none;
+}
+
+.fin-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.fin-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fin-value {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.fin-sparkline {
+  width: 50px;
+  height: 20px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.spark-bar {
+  flex: 1;
+  background: var(--accent);
+  opacity: 0.3;
+  border-radius: 1px;
+}
+
+.spark-bar:last-child {
+  opacity: 1;
+}
+
+.fin-growth {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.growth-badge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+}
+
+.growth-badge.pos { background: rgba(38, 166, 154, 0.1); color: var(--green); }
+.growth-badge.neg { background: rgba(239, 83, 80, 0.1); color: var(--red); }
+
+.growth-label {
+  font-size: 0.5rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.skeleton-row {
+  height: 48px;
+  background: rgba(255, 255, 255, 0.03);
+  margin-bottom: 12px;
+  border-radius: 8px;
+  animation: pulse 1.5s infinite;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.annual-badge {
+  font-size: 0.6rem;
+  background: rgba(255, 167, 38, 0.1);
+  color: #ffa726;
+  padding: 1px 4px;
+  border-radius: 4px;
+  margin-left: 6px;
+  font-weight: 700;
+  vertical-align: middle;
+}

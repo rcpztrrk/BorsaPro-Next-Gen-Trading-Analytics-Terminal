@@ -1,0 +1,45 @@
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Build & Dependencies
+node_modules/
+dist/
+build/
+*.pyc
+__pycache__/
+.cache/
+
+# Data & Local Databases
+data/
+*.db
+*.sqlite3
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE & System Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+nul
+output.txt
+
+# Temporary / Debug Files
+debug_*.py
+test_*.py
+mock_*.py
+temp_*.py
+
+# Frontend Specific
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.*.local
+frontend/*.log

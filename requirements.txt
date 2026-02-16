@@ -1,0 +1,15 @@
+# Backend Framework
+fastapi
+uvicorn
+python-dotenv
+
+# Data & Analysis
+pandas
+numpy
+yfinance
+beautifulsoup4
+requests
+
+# Optional: AI & Analysis
+# openai
+# langchain
