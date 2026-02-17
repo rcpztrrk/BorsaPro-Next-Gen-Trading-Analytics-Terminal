@@ -2,11 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import ChartComponent from './components/ChartComponent';
 import FundamentalPanel from './components/FundamentalPanel';
-import { Activity, Search, RefreshCw, Settings } from 'lucide-react';
+import CorrelationCard from './components/CorrelationCard';
+import ScreenerView from './views/ScreenerView';
+import { Activity, Search, RefreshCw, Settings, BarChart2, PieChart } from 'lucide-react';
 import './App.css';
 
 function App() {
   const [symbol, setSymbol] = useState('THYAO.IS');
+  const [view, setView] = useState('chart'); // 'chart' or 'screener'
   const [timeframe, setTimeframe] = useState('1d');
   const period = 'max';
   const [data, setData] = useState({ price: [], indicators: {} });
@@ -136,7 +139,11 @@ function App() {
           indicatorsData[key].sort((a, b) => (typeof a.time === 'number' ? a.time - b.time : new Date(a.time) - new Date(b.time)));
         });
 
-        setData({ price: uniquePriceData, indicators: indicatorsData });
+        setData({
+          price: uniquePriceData,
+          indicators: indicatorsData,
+          correlation: response.data.correlation // Store correlation data
+        });
         setFundamental(response.data.fundamental);
       }
     } catch (error) {
@@ -173,83 +180,110 @@ function App() {
       <aside className="sidebar">
         <div className="logo"><span>⚡ Borsa Pro</span></div>
         <nav>
-          <button className="active"><Activity size={20} /> <span>Grafik</span></button>
-          <button><Search size={20} /> <span>Takip</span></button>
-          <button><Settings size={20} /> <span>Ayarlar</span></button>
+          <button className={view === 'chart' ? 'active' : ''} onClick={() => setView('chart')}>
+            <Activity size={20} /> <span>Grafik</span>
+          </button>
+          <button className={view === 'screener' ? 'active' : ''} onClick={() => setView('screener')}>
+            <PieChart size={20} /> <span>Tarayıcı</span>
+          </button>
+          <button>
+            <Search size={20} /> <span>Takip</span>
+          </button>
+          <button>
+            <Settings size={20} /> <span>Ayarlar</span>
+          </button>
         </nav>
       </aside>
 
       {/* Main Content */}
       <main className="main-content">
-        <header className="top-bar">
-          <div className="left-controls">
-            <div className="symbol-selector" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <select
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
-                className="stock-dropdown"
-                style={{ background: 'var(--sidebar-bg)', color: 'white', border: '1px solid var(--border-color)', padding: '6px 12px', borderRadius: '6px' }}
-              >
-                <option value="THYAO.IS">THYAO - Türk Hava Yolları</option>
-                <option value="EREGL.IS">EREGL - Erdemir</option>
-                <option value="KCHOL.IS">KCHOL - Koç Holding</option>
-                <option value="GARAN.IS">GARAN - Garanti BBVA</option>
-                <option value="SISE.IS">SISE - Şişecam</option>
-                <option value="AKBNK.IS">AKBNK - Akbank</option>
-                <option value="ASELS.IS">ASELS - Aselsan</option>
-                <option value="TUPRS.IS">TUPRS - Tüpraş</option>
-                <option value="SAHOL.IS">SAHOL - Sabancı Holding</option>
-                <option value="BIMAS.IS">BIMAS - Bim Mağazalar</option>
-                <option value="PGSUS.IS">PGSUS - Pegasus</option>
-                <option value="EKGYO.IS">EKGYO - Emlak Konut</option>
-                <option value="ISCTR.IS">ISCTR - İş Bankası (C)</option>
-                <option value="YKBNK.IS">YKBNK - Yapı Kredi</option>
-                <option value="TCELL.IS">TCELL - Turkcell</option>
-                <option value="FROTO.IS">FROTO - Ford Otosan</option>
-                <option value="TOASO.IS">TOASO - Tofaş</option>
-                <option value="ARCLK.IS">ARCLK - Arçelik</option>
-                <option value="PETKM.IS">PETKM - Petkim</option>
-                <option value="SASA.IS">SASA - Sasa Polyester</option>
-                <option value="HEKTS.IS">HEKTS - Hektaş</option>
-                <option value="ASTOR.IS">ASTOR - Astor Enerji</option>
-                <option value="KOZAL.IS">KOZAL - Koza Altın</option>
-                <option value="DOHOL.IS">DOHOL - Doğan Holding</option>
-              </select>
-              <button className="refresh-btn" onClick={fetchData} disabled={loading} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
-                <RefreshCw size={18} className={loading ? 'spin' : ''} />
-              </button>
-            </div>
-          </div>
-
-          <div className="right-controls">
-            <div className="index-info" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              {indices && Array.isArray(indices) && indices.map((idx, i) => idx && !idx.error && (
-                <div className="index-item" key={i}>
-                  <span className="index-label" style={{ color: 'var(--text-dim)', fontSize: '0.75rem', marginRight: '4px' }}>
-                    {idx.symbol.replace('.IS', '').replace('=X', '')}
-                  </span>
-                  <span className={`index-value mono ${idx.percent >= 0 ? 'up' : 'down'}`} style={{ fontWeight: idx.percent >= 0 ? 'bold' : 'normal' }}>
-                    {idx.price ? idx.price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : 'N/A'} ({idx.percent >= 0 ? '+' : ''}{idx.percent ? idx.percent.toFixed(2) : '0.00'}%)
-                  </span>
+        {view === 'chart' ? (
+          <>
+            <header className="top-bar">
+              <div className="left-controls">
+                <div className="symbol-selector" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <select
+                    value={symbol}
+                    onChange={(e) => setSymbol(e.target.value)}
+                    className="stock-dropdown"
+                    style={{ background: 'var(--sidebar-bg)', color: 'white', border: '1px solid var(--border-color)', padding: '6px 12px', borderRadius: '6px' }}
+                  >
+                    <option value="THYAO.IS">THYAO - Türk Hava Yolları</option>
+                    <option value="EREGL.IS">EREGL - Erdemir</option>
+                    <option value="KCHOL.IS">KCHOL - Koç Holding</option>
+                    <option value="GARAN.IS">GARAN - Garanti BBVA</option>
+                    <option value="SISE.IS">SISE - Şişecam</option>
+                    <option value="AKBNK.IS">AKBNK - Akbank</option>
+                    <option value="ASELS.IS">ASELS - Aselsan</option>
+                    <option value="TUPRS.IS">TUPRS - Tüpraş</option>
+                    <option value="SAHOL.IS">SAHOL - Sabancı Holding</option>
+                    <option value="BIMAS.IS">BIMAS - Bim Mağazalar</option>
+                    <option value="PGSUS.IS">PGSUS - Pegasus</option>
+                    <option value="EKGYO.IS">EKGYO - Emlak Konut</option>
+                    <option value="ISCTR.IS">ISCTR - İş Bankası (C)</option>
+                    <option value="YKBNK.IS">YKBNK - Yapı Kredi</option>
+                    <option value="TCELL.IS">TCELL - Turkcell</option>
+                    <option value="FROTO.IS">FROTO - Ford Otosan</option>
+                    <option value="TOASO.IS">TOASO - Tofaş</option>
+                    <option value="ARCLK.IS">ARCLK - Arçelik</option>
+                    <option value="PETKM.IS">PETKM - Petkim</option>
+                    <option value="SASA.IS">SASA - Sasa Polyester</option>
+                    <option value="HEKTS.IS">HEKTS - Hektaş</option>
+                    <option value="ASTOR.IS">ASTOR - Astor Enerji</option>
+                    <option value="KOZAL.IS">KOZAL - Koza Altın</option>
+                    <option value="DOHOL.IS">DOHOL - Doğan Holding</option>
+                  </select>
+                  <button className="refresh-btn" onClick={fetchData} disabled={loading} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
+                    <RefreshCw size={18} className={loading ? 'spin' : ''} />
+                  </button>
                 </div>
-              ))}
-            </div>
+              </div>
+
+              <div className="right-controls">
+                <div className="index-info" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  {indices && Array.isArray(indices) && indices.map((idx, i) => idx && !idx.error && (
+                    <div className="index-item" key={i}>
+                      <span className="index-label" style={{ color: 'var(--text-dim)', fontSize: '0.75rem', marginRight: '4px' }}>
+                        {idx.symbol.replace('.IS', '').replace('=X', '')}
+                      </span>
+                      <span className={`index-value mono ${idx.percent >= 0 ? 'up' : 'down'}`} style={{ fontWeight: idx.percent >= 0 ? 'bold' : 'normal' }}>
+                        {idx.price ? idx.price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : 'N/A'} ({idx.percent >= 0 ? '+' : ''}{idx.percent ? idx.percent.toFixed(2) : '0.00'}%)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </header>
+
+            <section className="chart-section">
+              <ChartComponent
+                key={symbol}
+                symbol={symbol}
+                data={data.price}
+                indicators={data.indicators}
+                interval={timeframe}
+                setInterval={setTimeframe}
+              />
+            </section>
+
+            <aside className="fundamental-section">
+              <FundamentalPanel data={fundamental} loading={loading} />
+              <CorrelationCard data={data.correlation} />
+            </aside>
+          </>
+        ) : (
+          <div style={{
+            gridColumn: '1 / span 2',
+            gridRow: '1 / span 2', // This ensures it fills both Top Bar and Content rows
+            background: 'var(--bg-color)',
+            overflowY: 'auto'
+          }}>
+            <ScreenerView onSelectSymbol={(sym) => {
+              setSymbol(sym);
+              setView('chart');
+            }} />
           </div>
-        </header>
-
-        <section className="chart-section">
-          <ChartComponent
-            key={symbol}
-            data={data.price}
-            indicators={data.indicators}
-            interval={timeframe}
-            setInterval={setTimeframe}
-          />
-        </section>
-
-        <aside className="fundamental-section">
-          <FundamentalPanel data={fundamental} loading={loading} />
-        </aside>
+        )}
       </main>
     </div>
   );

@@ -1,11 +1,32 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from services.data_service import DataService
 from services.indicator_service import IndicatorService
+from services.screener_service import ScreenerService
+from services.drawing_service import DrawingService
 from typing import Optional
 
 router = APIRouter()
 data_service = DataService()
 indicator_service = IndicatorService()
+screener_service = ScreenerService(indicator_service)
+drawing_service = DrawingService()
+
+# --- DRAWINGS ENDPOINTS ---
+
+@router.get("/drawings/{symbol}")
+def get_drawings(symbol: str):
+    return drawing_service.get_drawings(symbol)
+
+@router.post("/drawings/{symbol}")
+async def save_drawings(symbol: str, request: Request):
+    try:
+        drawings = await request.json()
+        success = drawing_service.save_drawings(symbol, drawings)
+        return {"status": "success" if success else "error"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# --- EXISTING ENDPOINTS ---
 
 @router.get("/stock/{symbol}")
 def get_stock(symbol: str, period: str = "1y", interval: str = "1d", indicators: bool = True):
@@ -27,6 +48,22 @@ def get_stock(symbol: str, period: str = "1y", interval: str = "1d", indicators:
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/screener/start")
+def start_screener():
+    """Triggers a background scan."""
+    screener_service.start_background_scan()
+    return {"message": "Screener started in background"}
+
+@router.get("/screener/status")
+def get_screener_status():
+    """Returns current scan status and progress."""
+    return screener_service.get_status()
+
+@router.get("/screener/results")
+def get_screener_results(filter: Optional[str] = None):
+    """Returns the latest screening results."""
+    return screener_service.get_results(filter_type=filter)
 
 @router.get("/index/{symbol}")
 def get_index_data(symbol: str):

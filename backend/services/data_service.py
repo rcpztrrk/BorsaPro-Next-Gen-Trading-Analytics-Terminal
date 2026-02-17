@@ -67,6 +67,9 @@ class DataService:
             
             # 3. News (Simplified for API)
             result['news'] = self._get_news_data(symbol)
+
+            # 4. Correlation Data (New Feature)
+            result['correlation'] = self._get_correlation_data(symbol)
             
         except Exception as e:
             result['error'] = str(e)
@@ -441,3 +444,73 @@ class DataService:
             return ticker.news[:5]
         except:
             return []
+
+    def _get_correlation_data(self, symbol: str) -> List[Dict]:
+        """
+        Calculates Pearson correlation between the stock and major benchmarks.
+        """
+        try:
+            # 1. Define Benchmarks
+            benchmarks = {
+                'USD/TRY': 'TRY=X',
+                'Gram Altın': 'GC=F', # Global Gold Futures (Proxy)
+                'S&P 500': '^GSPC',
+                'BIST 100': 'XU100.IS'
+            }
+            
+            # 2. Fetch History (Last 1 year, daily)
+            # We need aligned dates for correlation
+            period = "1y"
+            interval = "1d"
+            
+            # Target Stock Data
+            target_df = self._get_price_data(symbol, period, interval)
+            if target_df.empty: return []
+
+            # Prepare Target Series (Close prices indexed by Date)
+            # Ensure Date is datetime object for alignment
+            target_df['Date'] = pd.to_datetime(target_df['Date'].apply(lambda x: x.split('T')[0] if 'T' in str(x) else x))
+            target_series = target_df.set_index('Date')['Close']
+
+            correlations = []
+
+            for label, ticker_symbol in benchmarks.items():
+                if ticker_symbol == symbol: continue # Don't correlate with itself
+
+                # Fetch Benchmark Data
+                bench_df = self._get_price_data(ticker_symbol, period, interval)
+                if bench_df.empty: continue
+
+                bench_df['Date'] = pd.to_datetime(bench_df['Date'].apply(lambda x: x.split('T')[0] if 'T' in str(x) else x))
+                bench_series = bench_df.set_index('Date')['Close']
+
+                # 3. Align and Calculate Correlation
+                # Inner join to match dates exactly
+                combined = pd.concat([target_series, bench_series], axis=1, join='inner')
+                if len(combined) < 30: continue # Need enough data points
+
+                corr_val = combined.iloc[:, 0].corr(combined.iloc[:, 1])
+                
+                # Determine "Driver" status
+                # If correlation is high (>0.7 or <-0.7), it's a strong driver
+                status = "Nötr"
+                if corr_val > 0.7: status = "Pozitif"
+                elif corr_val < -0.7: status = "Ters (Negatif)"
+                elif corr_val > 0.4: status = "Hafif Pozitif"
+                elif corr_val < -0.4: status = "Hafif Ters"
+
+                correlations.append({
+                    'id': ticker_symbol,
+                    'label': label,
+                    'correlation': round(corr_val, 2),
+                    'status': status,
+                    'info': f"{label} ile {status.lower()} ilişki"
+                })
+
+
+            return correlations
+
+        except Exception as e:
+            print(f"Correlation error for {symbol}: {e}")
+            return []
+

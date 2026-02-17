@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { createChart, CrosshairMode, CandlestickSeries, LineSeries, HistogramSeries, createSeriesMarkers } from 'lightweight-charts';
+import axios from 'axios';
 import InteractiveOverlay from './InteractiveOverlay';
 import IndicatorModal from './IndicatorModal';
-import { MousePointer2, Trash2, Activity, Info, Search, X, TrendingUp } from 'lucide-react';
+import { MousePointer2, Trash2, Activity, Info, Search, X, TrendingUp, Square, Type, Minus, Hash } from 'lucide-react';
 
-const ChartComponent = ({ data, indicators, interval, setInterval }) => {
+const ChartComponent = ({ symbol, data, indicators, interval, setInterval }) => {
     const chartContainerRef = useRef();
     const rsiContainerRef = useRef();
     const macdContainerRef = useRef();
@@ -64,7 +65,38 @@ const ChartComponent = ({ data, indicators, interval, setInterval }) => {
     }, [visibility]);
 
     const [isDrawingMode, setIsDrawingMode] = useState(false);
+    const [drawingType, setDrawingType] = useState('trend'); // 'trend', 'fib', 'box', 'hline'
     const [drawings, setDrawings] = useState([]);
+
+    // --- DRAWING PERSISTENCE ---
+    const fetchDrawings = useCallback(async () => {
+        if (!symbol) return;
+        try {
+            const response = await axios.get(`http://localhost:8000/api/drawings/${symbol}`);
+            if (Array.isArray(response.data)) {
+                setDrawings(response.data);
+            }
+        } catch (e) { console.error('Error fetching drawings:', e); }
+    }, [symbol]);
+
+    const saveDrawings = async (newDrawings) => {
+        if (!symbol) return;
+        try {
+            await axios.post(`http://localhost:8000/api/drawings/${symbol}`, newDrawings);
+        } catch (e) { console.error('Error saving drawings:', e); }
+    };
+
+    useEffect(() => {
+        fetchDrawings();
+    }, [fetchDrawings]);
+
+    const handleSetDrawings = (updateFunc) => {
+        setDrawings(prev => {
+            const next = typeof updateFunc === 'function' ? updateFunc(prev) : updateFunc;
+            saveDrawings(next);
+            return next;
+        });
+    };
     const [hoverValues, setHoverValues] = useState({
         price: null, ma20: null, ma50: null, ma200: null,
         ema9: null, ema21: null, bbUpper: null, bbLower: null,
@@ -760,7 +792,27 @@ const ChartComponent = ({ data, indicators, interval, setInterval }) => {
                     <button onClick={() => setIsDrawingMode(!isDrawingMode)} className={`circle-btn-flat ${isDrawingMode ? 'active' : ''}`} title="Çizim Modu">
                         <MousePointer2 size={14} />
                     </button>
-                    <button onClick={() => setDrawings([])} className="circle-btn-flat" title="Çizimleri Temizle">
+                    {isDrawingMode && (
+                        <div className="flex gap-1" style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '2px', borderRadius: '6px' }}>
+                            {[
+                                { id: 'trend', icon: <Minus size={14} />, title: 'Trend Çizgisi' },
+                                { id: 'fib', icon: <Hash size={14} />, title: 'Fibonacci' },
+                                { id: 'box', icon: <Square size={14} />, title: 'Kutu' },
+                                { id: 'hline', icon: <Type size={14} />, title: 'Yatay Çizgi' }
+                            ].map(tool => (
+                                <button
+                                    key={tool.id}
+                                    onClick={() => setDrawingType(tool.id)}
+                                    className={`tf-item ${drawingType === tool.id ? 'active' : ''}`}
+                                    style={{ padding: '4px 8px' }}
+                                    title={tool.title}
+                                >
+                                    {tool.icon}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    <button onClick={() => handleSetDrawings([])} className="circle-btn-flat" title="Çizimleri Temizle">
                         <Trash2 size={14} />
                     </button>
                 </div>
@@ -837,8 +889,9 @@ const ChartComponent = ({ data, indicators, interval, setInterval }) => {
                     chart={chartRef.current}
                     series={seriesRef.current.main}
                     drawings={drawings}
-                    setDrawings={setDrawings}
+                    setDrawings={handleSetDrawings}
                     isDrawingMode={isDrawingMode}
+                    drawingType={drawingType}
                 />
             </div>
 

@@ -670,3 +670,16 @@ body {
   font-weight: 700;
   vertical-align: middle;
 }
+
+/* Screener Specific Styles */
+.screener-row:hover { background: rgba(255, 255, 255, 0.05) !important; }
+.screener-table-container::-webkit-scrollbar { width: 6px; }
+.screener-table-container::-webkit-scrollbar-track { background: var(--bg-dark); }
+.screener-table-container::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+.screener-table-container::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+.btn-primary { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; color: white; transition: transform 0.2s, background 0.2s; }
+.btn-primary:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+.btn-primary:active:not(:disabled) { transform: translateY(0); }
+.text-blue { color: #2196f3; }
+.screener-view { animation: fadeIn 0.4s ease-out; }
+
