@@ -184,7 +184,6 @@ const ChartComponent = ({ symbol, data, indicators, interval, setInterval }) => 
         handleScale: true,
         watermark: { visible: false },
     }), [timeFormatter]);
-
     useEffect(() => {
         if (!chartContainerRef.current) return;
 
@@ -227,7 +226,50 @@ const ChartComponent = ({ symbol, data, indicators, interval, setInterval }) => 
 
         cleanupCharts();
 
-        const parentHeight = chartContainerRef.current.parentElement.clientHeight - 40;
+        const handleResize = () => {
+            if (!chartContainerRef.current) return;
+            const width = chartContainerRef.current.clientWidth;
+            const parentHeight = chartContainerRef.current.closest('.panel-wrapper')?.clientHeight || chartContainerRef.current.parentElement.parentElement.clientHeight;
+            const subPanelsCount = [visibility.rsi, visibility.macd, visibility.stoch, visibility.atr, visibility.mfi, visibility.cci, visibility.williams_r, visibility.cmf, visibility.volume].filter(Boolean).length;
+
+            let mHeight, sHeight;
+            if (subPanelsCount === 0) {
+                mHeight = parentHeight;
+                sHeight = 0;
+            } else if (subPanelsCount === 1) {
+                mHeight = parentHeight * 0.75;
+                sHeight = parentHeight * 0.25;
+            } else {
+                mHeight = parentHeight * 0.60;
+                sHeight = (parentHeight * 0.40) / subPanelsCount;
+            }
+
+            if (chartRef.current) {
+                chartRef.current.applyOptions({ width, height: mHeight });
+            }
+            [
+                { ref: rsiChartRef, visible: visibility.rsi },
+                { ref: macdChartRef, visible: visibility.macd },
+                { ref: stochChartRef, visible: visibility.stoch },
+                { ref: atrChartRef, visible: visibility.atr },
+                { ref: mfiChartRef, visible: visibility.mfi },
+                { ref: cciChartRef, visible: visibility.cci },
+                { ref: wrChartRef, visible: visibility.williams_r },
+                { ref: cmfChartRef, visible: visibility.cmf },
+                { ref: volChartRef, visible: visibility.volume }
+            ].forEach(p => {
+                if (p.visible && p.ref.current) {
+                    p.ref.current.applyOptions({ width, height: sHeight });
+                }
+            });
+        };
+
+        const resizeObserver = new ResizeObserver(() => {
+            requestAnimationFrame(handleResize);
+        });
+        resizeObserver.observe(chartContainerRef.current);
+
+        const parentHeight = chartContainerRef.current.closest('.panel-wrapper')?.clientHeight || chartContainerRef.current.parentElement.parentElement.clientHeight;
         const subPanels = [visibility.rsi, visibility.macd, visibility.stoch, visibility.atr, visibility.mfi, visibility.cci, visibility.williams_r, visibility.cmf, visibility.volume].filter(Boolean).length;
 
         let mainHeight, subHeight;
@@ -235,8 +277,8 @@ const ChartComponent = ({ symbol, data, indicators, interval, setInterval }) => 
             mainHeight = parentHeight;
             subHeight = 0;
         } else if (subPanels === 1) {
-            mainHeight = parentHeight * 0.80;
-            subHeight = parentHeight * 0.20;
+            mainHeight = parentHeight * 0.75;
+            subHeight = parentHeight * 0.25;
         } else {
             mainHeight = parentHeight * 0.60;
             subHeight = (parentHeight * 0.40) / subPanels;
@@ -719,42 +761,8 @@ const ChartComponent = ({ symbol, data, indicators, interval, setInterval }) => 
             });
         }
 
-        const handleResize = () => {
-            if (!chartContainerRef.current) return;
-            const w = chartContainerRef.current.clientWidth;
-            const h = chartContainerRef.current.parentElement.clientHeight - 40;
-
-            const subPanelsCount = [
-                visibility.rsi, visibility.macd, visibility.stoch, visibility.atr,
-                visibility.mfi, visibility.cci, visibility.williams_r, visibility.cmf, visibility.volume
-            ].filter(Boolean).length;
-            let mH, sH;
-            if (subPanelsCount === 0) {
-                mH = h;
-                sH = 0;
-            } else if (subPanelsCount === 1) {
-                mH = h * 0.80;
-                sH = h * 0.20;
-            } else {
-                mH = h * 0.60;
-                sH = (h * 0.40) / subPanelsCount;
-            }
-
-            chart.applyOptions({ width: w, height: mH });
-            if (volChartRef.current) volChartRef.current.applyOptions({ width: w, height: sH });
-            if (rsiChartRef.current) rsiChartRef.current.applyOptions({ width: w, height: sH });
-            if (macdChartRef.current) macdChartRef.current.applyOptions({ width: w, height: sH });
-            if (stochChartRef.current) stochChartRef.current.applyOptions({ width: w, height: sH });
-            if (atrChartRef.current) atrChartRef.current.applyOptions({ width: w, height: sH });
-            if (mfiChartRef.current) mfiChartRef.current.applyOptions({ width: w, height: sH });
-            if (cciChartRef.current) cciChartRef.current.applyOptions({ width: w, height: sH });
-            if (wrChartRef.current) wrChartRef.current.applyOptions({ width: w, height: sH });
-            if (cmfChartRef.current) cmfChartRef.current.applyOptions({ width: w, height: sH });
-        };
-        window.addEventListener('resize', handleResize);
-
         return () => {
-            window.removeEventListener('resize', handleResize);
+            resizeObserver.disconnect();
             cleanupCharts();
         };
     }, [visibility, data, indicators, commonOptions]);
@@ -818,9 +826,9 @@ const ChartComponent = ({ symbol, data, indicators, interval, setInterval }) => 
                 </div>
             </div>
 
-            <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: '#0d1117' }}>
-                <div className="panel-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                    <div ref={chartContainerRef} style={{ flex: 1, width: '100%' }} />
+            <div className="panel-wrapper" style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', background: '#0d1117' }}>
+                <div className="panel-container main-panel" style={{ position: 'relative', overflow: 'hidden' }}>
+                    <div ref={chartContainerRef} style={{ width: '100%' }} />
                     <PanelLegend
                         label="PRICE"
                         indicators={visibility}
@@ -831,25 +839,25 @@ const ChartComponent = ({ symbol, data, indicators, interval, setInterval }) => 
                 </div>
 
                 {visibility.rsi && (
-                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative' }}>
+                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative', overflow: 'hidden' }}>
                         <div ref={rsiContainerRef} style={{ width: '100%' }} />
                         <PanelLegend label="RSI" value={hoverValues.rsi} onClose={() => setVisibility(v => ({ ...v, rsi: false }))} />
                     </div>
                 )}
                 {visibility.macd && (
-                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative' }}>
+                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative', overflow: 'hidden' }}>
                         <div ref={macdContainerRef} style={{ width: '100%' }} />
                         <PanelLegend label="MACD" value={hoverValues.macd} onClose={() => setVisibility(v => ({ ...v, macd: false }))} />
                     </div>
                 )}
                 {visibility.stoch && (
-                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative' }}>
+                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative', overflow: 'hidden' }}>
                         <div ref={stochContainerRef} style={{ width: '100%' }} />
                         <PanelLegend label="STOCH" value={hoverValues.stochK} onClose={() => setVisibility(v => ({ ...v, stoch: false }))} />
                     </div>
                 )}
                 {visibility.atr && (
-                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative' }}>
+                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative', overflow: 'hidden' }}>
                         <div ref={atrContainerRef} style={{ width: '100%' }} />
                         <PanelLegend label="ATR" value={hoverValues.atr} onClose={() => setVisibility(v => ({ ...v, atr: false }))} />
                     </div>
@@ -861,25 +869,25 @@ const ChartComponent = ({ symbol, data, indicators, interval, setInterval }) => 
                     </div>
                 )}
                 {visibility.mfi && (
-                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative' }}>
+                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative', overflow: 'hidden' }}>
                         <div ref={mfiContainerRef} style={{ width: '100%' }} />
                         <PanelLegend label="MFI" value={hoverValues.mfi} onClose={() => setVisibility(v => ({ ...v, mfi: false }))} />
                     </div>
                 )}
                 {visibility.cci && (
-                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative' }}>
+                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative', overflow: 'hidden' }}>
                         <div ref={cciContainerRef} style={{ width: '100%' }} />
                         <PanelLegend label="CCI" value={hoverValues.cci} onClose={() => setVisibility(v => ({ ...v, cci: false }))} />
                     </div>
                 )}
                 {visibility.williams_r && (
-                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative' }}>
+                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative', overflow: 'hidden' }}>
                         <div ref={wrContainerRef} style={{ width: '100%' }} />
                         <PanelLegend label="W %R" value={hoverValues.williamsR} onClose={() => setVisibility(v => ({ ...v, williams_r: false }))} />
                     </div>
                 )}
                 {visibility.cmf && (
-                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative' }}>
+                    <div className="panel-container" style={{ borderTop: '1px solid #30363d', position: 'relative', overflow: 'hidden' }}>
                         <div ref={cmfContainerRef} style={{ width: '100%' }} />
                         <PanelLegend label="CMF" value={hoverValues.cmf} onClose={() => setVisibility(v => ({ ...v, cmf: false }))} />
                     </div>

@@ -137,8 +137,10 @@ class DataService:
                     except:
                         continue
 
-                # Filter for BIST Trading Hours (10:00 - 18:05) strictly for intraday
-                if interval in ["1m", "2m", "5m", "15m", "30m", "1h", "90m"]:
+                # Filter for BIST Trading Hours (10:00 - 18:05) strictly for intraday BIST stocks only
+                # Crypto, Forex, and Commodities trade 24/7 so we skip this filter for them
+                is_bist = symbol.upper().endswith('.IS')
+                if is_bist and interval in ["1m", "2m", "5m", "15m", "30m", "1h", "90m"]:
                     if dt_istanbul:
                         # Market Open: 10:00. Market Close: 18:05 (approx)
                         # We include 10:00 <= time <= 18:05
@@ -195,6 +197,7 @@ class DataService:
                 'ozsermaye_karliligi': safe_num(info.get('returnOnEquity')),
                 'son_fiyat': safe_num(info.get('regularMarketPrice') or info.get('currentPrice')),
                 'gunluk_degisim': safe_num(info.get('regularMarketChangePercent')),
+                'onceki_kapanis': safe_num(info.get('regularMarketPreviousClose') or info.get('previousClose')),
                 'elli_gunluk_ort': safe_num(info.get('fiftyDayAverage')),
                 'iki_yuz_gunluk_ort': safe_num(info.get('twoHundredDayAverage')),
                 'hedef_dusuk': safe_num(info.get('targetLowPrice')),

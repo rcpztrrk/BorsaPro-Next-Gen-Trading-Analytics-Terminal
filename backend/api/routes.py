@@ -3,15 +3,49 @@ from services.data_service import DataService
 from services.indicator_service import IndicatorService
 from services.screener_service import ScreenerService
 from services.drawing_service import DrawingService
+from services.portfolio_service import PortfolioService
 from typing import Optional
+from pydantic import BaseModel
 
 router = APIRouter()
 data_service = DataService()
 indicator_service = IndicatorService()
 screener_service = ScreenerService(indicator_service)
 drawing_service = DrawingService()
+portfolio_service = PortfolioService()
 
-# --- DRAWINGS ENDPOINTS ---
+# --- PORTFOLIO ENDPOINTS ---
+
+class PositionInput(BaseModel):
+    symbol: str
+    quantity: float
+    avg_cost: float
+    sector: str = ''
+    notes: str = ''
+
+@router.get("/portfolio")
+def get_portfolio():
+    """Returns full portfolio with live prices, P/L, weights, and risk metrics."""
+    return portfolio_service.get_portfolio()
+
+@router.post("/portfolio")
+def add_position(pos: PositionInput):
+    """Add or update a position. If symbol exists, recalculates weighted average cost."""
+    return portfolio_service.add_position(
+        symbol=pos.symbol, quantity=pos.quantity, avg_cost=pos.avg_cost,
+        sector=pos.sector, notes=pos.notes
+    )
+
+@router.delete("/portfolio/{symbol}")
+def remove_position(symbol: str):
+    """Remove a position entirely."""
+    return portfolio_service.remove_position(symbol)
+
+@router.get("/portfolio/transactions")
+def get_transactions(symbol: str = None):
+    """Returns transaction history, optionally filtered by symbol."""
+    return portfolio_service.get_transactions(symbol)
+
 
 @router.get("/drawings/{symbol}")
 def get_drawings(symbol: str):
@@ -98,6 +132,63 @@ def get_top_indices():
        get_index_data("XU100.IS"),
        get_index_data("USDTRY=X")
     ]
+
+@router.get("/symbols")
+def get_all_symbols():
+    """Returns a categorized list of all available symbols for the portfolio and search."""
+    return {
+        "bist_100": [{"symbol": s, "name": s.replace('.IS', '')} for s in screener_service.bist_100_symbols],
+        "forex": [
+            {"symbol": "USDTRY=X", "name": "USD/TRY - Dolar/TL"},
+            {"symbol": "EURTRY=X", "name": "EUR/TRY - Euro/TL"},
+            {"symbol": "GBPTRY=X", "name": "GBP/TRY - Sterlin/TL"},
+            {"symbol": "EURUSD=X", "name": "EUR/USD - Euro/Dolar"},
+            {"symbol": "GBPUSD=X", "name": "GBP/USD - Sterlin/Dolar"},
+            {"symbol": "USDJPY=X", "name": "USD/JPY - Dolar/Yen"},
+            {"symbol": "USDCHF=X", "name": "USD/CHF - Dolar/Frank"},
+            {"symbol": "USDCAD=X", "name": "USD/CAD - Dolar/Kanada"},
+            {"symbol": "AUDUSD=X", "name": "AUD/USD - Avustralya/Dolar"},
+            {"symbol": "NZDUSD=X", "name": "NZD/USD - Yeni Zelanda/Dolar"},
+            {"symbol": "EURGBP=X", "name": "EUR/GBP - Euro/Sterlin"},
+            {"symbol": "EURJPY=X", "name": "EUR/JPY - Euro/Yen"},
+            {"symbol": "GBPJPY=X", "name": "GBP/JPY - Sterlin/Yen"}
+        ],
+        "commodities": [
+            {"symbol": "GC=F", "name": "Altin (Ons)"},
+            {"symbol": "SI=F", "name": "Gumus (Ons)"},
+            {"symbol": "CL=F", "name": "Ham Petrol (Brent)"},
+            {"symbol": "NG=F", "name": "Dogal Gaz"},
+            {"symbol": "HG=F", "name": "Bakir"},
+            {"symbol": "ZC=F", "name": "Misir"},
+            {"symbol": "ZW=F", "name": "Bugday"},
+            {"symbol": "KC=F", "name": "Kahve"},
+            {"symbol": "CT=F", "name": "Pamuk"}
+        ],
+        "crypto": [
+            {"symbol": "BTC-USD", "name": "Bitcoin (BTC)"},
+            {"symbol": "ETH-USD", "name": "Ethereum (ETH)"},
+            {"symbol": "SOL-USD", "name": "Solana (SOL)"},
+            {"symbol": "BNB-USD", "name": "Binance Coin (BNB)"},
+            {"symbol": "XRP-USD", "name": "XRP (Ripple)"},
+            {"symbol": "ADA-USD", "name": "Cardano (ADA)"},
+            {"symbol": "DOGE-USD", "name": "Dogecoin (DOGE)"},
+            {"symbol": "DOT-USD", "name": "Polkadot (DOT)"},
+            {"symbol": "TRX-USD", "name": "TRON (TRX)"},
+            {"symbol": "LINK-USD", "name": "Chainlink (LINK)"},
+            {"symbol": "AVAX-USD", "name": "Avalanche (AVAX)"},
+            {"symbol": "SHIB-USD", "name": "Shiba Inu (SHIB)"},
+            {"symbol": "MATIC-USD", "name": "Polygon (MATIC)"},
+            {"symbol": "LTC-USD", "name": "Litecoin (LTC)"},
+            {"symbol": "UNI-USD", "name": "Uniswap (UNI)"},
+            {"symbol": "BCH-USD", "name": "Bitcoin Cash (BCH)"},
+            {"symbol": "NEAR-USD", "name": "NEAR Protocol (NEAR)"},
+            {"symbol": "ATOM-USD", "name": "Cosmos (ATOM)"},
+            {"symbol": "XLM-USD", "name": "Stellar (XLM)"},
+            {"symbol": "XMR-USD", "name": "Monero (XMR)"},
+            {"symbol": "PEPE-USD", "name": "Pepe (PEPE)"},
+            {"symbol": "FET-USD", "name": "Fetch.ai (FET)"}
+        ]
+    }
 
 @router.get("/search/{query}")
 def search_stock(query: str):

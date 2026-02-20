@@ -4,18 +4,22 @@ import ChartComponent from './components/ChartComponent';
 import FundamentalPanel from './components/FundamentalPanel';
 import CorrelationCard from './components/CorrelationCard';
 import ScreenerView from './views/ScreenerView';
-import { Activity, Search, RefreshCw, Settings, BarChart2, PieChart } from 'lucide-react';
+import PortfolioView from './views/PortfolioView';
+import SymbolSearchModal from './components/SymbolSearchModal';
+import { Activity, Search, RefreshCw, Settings, BarChart2, PieChart, Briefcase, Plus } from 'lucide-react';
 import './App.css';
 
 function App() {
   const [symbol, setSymbol] = useState('THYAO.IS');
-  const [view, setView] = useState('chart'); // 'chart' or 'screener'
+  const [view, setView] = useState('chart'); // 'chart', 'screener', or 'portfolio'
   const [timeframe, setTimeframe] = useState('1d');
   const period = 'max';
   const [data, setData] = useState({ price: [], indicators: {} });
   const [fundamental, setFundamental] = useState(null);
   const [indices, setIndices] = useState([]);
+  const [availableSymbols, setAvailableSymbols] = useState({ bist_100: [], forex: [], commodities: [], crypto: [] });
   const [loading, setLoading] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const abortRef = useRef(null);
 
   const fetchData = useCallback(async () => {
@@ -157,10 +161,14 @@ function App() {
 
   const fetchIndices = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/indices');
-      setIndices(response.data);
+      const [indicesRes, symbolsRes] = await Promise.all([
+        axios.get('http://localhost:8000/api/indices'),
+        axios.get('http://localhost:8000/api/symbols')
+      ]);
+      setIndices(indicesRes.data);
+      setAvailableSymbols(symbolsRes.data);
     } catch (err) {
-      console.error('Indices error:', err);
+      console.error('Initial fetch error:', err);
     }
   };
 
@@ -186,8 +194,8 @@ function App() {
           <button className={view === 'screener' ? 'active' : ''} onClick={() => setView('screener')}>
             <PieChart size={20} /> <span>Tarayıcı</span>
           </button>
-          <button>
-            <Search size={20} /> <span>Takip</span>
+          <button className={view === 'portfolio' ? 'active' : ''} onClick={() => setView('portfolio')}>
+            <Briefcase size={20} /> <span>Portfoy</span>
           </button>
           <button>
             <Settings size={20} /> <span>Ayarlar</span>
@@ -201,41 +209,33 @@ function App() {
           <>
             <header className="top-bar">
               <div className="left-controls">
-                <div className="symbol-selector" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <select
-                    value={symbol}
-                    onChange={(e) => setSymbol(e.target.value)}
-                    className="stock-dropdown"
-                    style={{ background: 'var(--sidebar-bg)', color: 'white', border: '1px solid var(--border-color)', padding: '6px 12px', borderRadius: '6px' }}
+                <div className="symbol-selector" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    className="symbol-trigger"
+                    onClick={() => setIsSearchModalOpen(true)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      background: 'var(--sidebar-bg)',
+                      color: 'white',
+                      border: '1px solid var(--border-color)',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      minWidth: '200px',
+                      transition: 'all 0.2s',
+                      userSelect: 'none'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = '#2962ff'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-color)'}
                   >
-                    <option value="THYAO.IS">THYAO - Türk Hava Yolları</option>
-                    <option value="EREGL.IS">EREGL - Erdemir</option>
-                    <option value="KCHOL.IS">KCHOL - Koç Holding</option>
-                    <option value="GARAN.IS">GARAN - Garanti BBVA</option>
-                    <option value="SISE.IS">SISE - Şişecam</option>
-                    <option value="AKBNK.IS">AKBNK - Akbank</option>
-                    <option value="ASELS.IS">ASELS - Aselsan</option>
-                    <option value="TUPRS.IS">TUPRS - Tüpraş</option>
-                    <option value="SAHOL.IS">SAHOL - Sabancı Holding</option>
-                    <option value="BIMAS.IS">BIMAS - Bim Mağazalar</option>
-                    <option value="PGSUS.IS">PGSUS - Pegasus</option>
-                    <option value="EKGYO.IS">EKGYO - Emlak Konut</option>
-                    <option value="ISCTR.IS">ISCTR - İş Bankası (C)</option>
-                    <option value="YKBNK.IS">YKBNK - Yapı Kredi</option>
-                    <option value="TCELL.IS">TCELL - Turkcell</option>
-                    <option value="FROTO.IS">FROTO - Ford Otosan</option>
-                    <option value="TOASO.IS">TOASO - Tofaş</option>
-                    <option value="ARCLK.IS">ARCLK - Arçelik</option>
-                    <option value="PETKM.IS">PETKM - Petkim</option>
-                    <option value="SASA.IS">SASA - Sasa Polyester</option>
-                    <option value="HEKTS.IS">HEKTS - Hektaş</option>
-                    <option value="ASTOR.IS">ASTOR - Astor Enerji</option>
-                    <option value="KOZAL.IS">KOZAL - Koza Altın</option>
-                    <option value="DOHOL.IS">DOHOL - Doğan Holding</option>
-                  </select>
-                  <button className="refresh-btn" onClick={fetchData} disabled={loading} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
-                    <RefreshCw size={18} className={loading ? 'spin' : ''} />
-                  </button>
+                    <Search size={16} color="#787b86" />
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '14px' }}>{symbol.replace('.IS', '').replace('=X', '')}</span>
+                      <span style={{ fontSize: '10px', color: '#787b86' }}>Sembol Değiştir</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -271,10 +271,10 @@ function App() {
               <CorrelationCard data={data.correlation} />
             </aside>
           </>
-        ) : (
+        ) : view === 'screener' ? (
           <div style={{
             gridColumn: '1 / span 2',
-            gridRow: '1 / span 2', // This ensures it fills both Top Bar and Content rows
+            gridRow: '1 / span 2',
             background: 'var(--bg-color)',
             overflowY: 'auto'
           }}>
@@ -283,8 +283,27 @@ function App() {
               setView('chart');
             }} />
           </div>
-        )}
+        ) : view === 'portfolio' ? (
+          <div style={{
+            gridColumn: '1 / span 2',
+            gridRow: '1 / span 2',
+            background: 'var(--bg-color)',
+            overflowY: 'auto'
+          }}>
+            <PortfolioView onSelectSymbol={(sym) => {
+              setSymbol(sym);
+              setView('chart');
+            }} />
+          </div>
+        ) : null}
       </main>
+
+      <SymbolSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        symbols={availableSymbols}
+        onSelect={(s) => setSymbol(s)}
+      />
     </div>
   );
 }

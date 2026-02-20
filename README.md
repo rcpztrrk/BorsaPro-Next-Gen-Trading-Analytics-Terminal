@@ -1,4 +1,4 @@
-# Borsa Terminali Pro
+# BorsaPro Terminal - Professional Financial Analysis & Portfolio Management System
 
 A modern, high-performance stock tracking terminal built for Borsa Istanbul (BIST). Powered by the **yfinance API**, it provides real-time price tracking, 30+ technical indicators, professional drawing tools with persistent storage, a parallel stock screener, and detailed financial analysis.
 
@@ -102,4 +102,4 @@ This application is developed strictly for **educational and personal tracking p
 
 ---
 
-*Developer: Recep*
+*Developer:rcpztrrk

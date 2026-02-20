@@ -115,9 +115,11 @@ const FundamentalPanel = ({ data, loading }) => {
                 </div>
                 <div className="price-summary">
                     <span className="current-price mono">{formatNum(data.son_fiyat)} ₺</span>
-                    <span className={`price-change mono ${data.gunluk_degisim >= 0 ? 'pos' : 'neg'}`}>
-                        {data.gunluk_degisim >= 0 ? '▲' : '▼'} %{Math.abs(data.gunluk_degisim * 100).toFixed(2)}
-                    </span>
+                    {data.onceki_kapanis && data.son_fiyat && (
+                        <span className={`price-change mono ${data.son_fiyat >= data.onceki_kapanis ? 'pos' : 'neg'}`}>
+                            {data.son_fiyat >= data.onceki_kapanis ? '▲' : '▼'} %{Math.abs(((data.son_fiyat - data.onceki_kapanis) / data.onceki_kapanis) * 100).toFixed(2)}
+                        </span>
+                    )}
                 </div>
             </div>
 
