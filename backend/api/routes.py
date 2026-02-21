@@ -4,7 +4,8 @@ from services.indicator_service import IndicatorService
 from services.screener_service import ScreenerService
 from services.drawing_service import DrawingService
 from services.portfolio_service import PortfolioService
-from typing import Optional
+from services.watchlist_service import WatchlistService
+from typing import Optional, List
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -13,6 +14,59 @@ indicator_service = IndicatorService()
 screener_service = ScreenerService(indicator_service)
 drawing_service = DrawingService()
 portfolio_service = PortfolioService()
+watchlist_service = WatchlistService()
+
+# --- WATCHLIST ENDPOINTS ---
+
+class WatchlistInput(BaseModel):
+    symbol: str
+
+class WatchlistOrderInput(BaseModel):
+    order: List[str]
+
+@router.get("/watchlist")
+def get_watchlist():
+    return watchlist_service.get_watchlist()
+
+@router.get("/watchlist/data")
+def get_watchlist_data():
+    symbols_data = watchlist_service.get_watchlist()
+    symbols = [s['symbol'] for s in symbols_data]
+    if not symbols:
+        return []
+    
+    prices = data_service.fetch_latest_prices(symbols)
+    result = []
+    for s_meta in symbols_data:
+        sym = s_meta['symbol']
+        p_data = prices.get(sym, {"price": 0, "change": 0, "percent": 0})
+        result.append({
+            "symbol": sym,
+            "order_index": s_meta['order_index'],
+            **p_data
+        })
+    return result
+
+@router.post("/watchlist")
+def add_to_watchlist(input: WatchlistInput):
+    success = watchlist_service.add_symbol(input.symbol)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to add symbol")
+    return {"status": "success"}
+
+@router.delete("/watchlist/{symbol}")
+def remove_from_watchlist(symbol: str):
+    success = watchlist_service.remove_symbol(symbol)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to remove symbol")
+    return {"status": "success"}
+
+@router.put("/watchlist/reorder")
+def reorder_watchlist(input: WatchlistOrderInput):
+    success = watchlist_service.update_order(input.order)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to update order")
+    return {"status": "success"}
 
 # --- PORTFOLIO ENDPOINTS ---
 

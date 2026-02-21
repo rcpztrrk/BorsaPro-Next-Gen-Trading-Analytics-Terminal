@@ -26,6 +26,41 @@ class DataService:
         self._price_cache = {}
         self._fundamental_cache = {}
         print("[OK] Data Service cache cleared.")
+
+    def fetch_latest_prices(self, symbols: List[str]) -> Dict[str, Dict]:
+        """Batch fetch latest price and daily change for symbols."""
+        results = {}
+        try:
+            # Join symbols for yfinance batch fetch
+            ticker_list = ' '.join(symbols)
+            tickers = yf.Tickers(ticker_list)
+            
+            for sym in symbols:
+                try:
+                    ticker = tickers.tickers.get(sym)
+                    if ticker:
+                        # Fetch 1d history to get previous close and current price
+                        hist = ticker.history(period='2d')
+                        if not hist.empty:
+                            close_price = float(hist['Close'].iloc[-1])
+                            prev_close = float(hist['Close'].iloc[-2]) if len(hist) > 1 else close_price
+                            change = close_price - prev_close
+                            pct = (change / prev_close * 100) if prev_close != 0 else 0
+                            
+                            results[sym] = {
+                                "price": round(close_price, 2),
+                                "change": round(change, 2),
+                                "percent": round(pct, 2)
+                            }
+                        else:
+                            results[sym] = {"price": 0, "change": 0, "percent": 0}
+                except Exception as e:
+                    print(f"Error fetching batch price for {sym}: {e}")
+                    results[sym] = {"price": 0, "change": 0, "percent": 0}
+        except Exception as e:
+            print(f"Error in batch price fetch: {e}")
+            
+        return results
         
     def get_stock_data(self, symbol: str, period: str = "1y", interval: str = "1d") -> Dict:
         # Same logic as DataEngine.get_stock_data

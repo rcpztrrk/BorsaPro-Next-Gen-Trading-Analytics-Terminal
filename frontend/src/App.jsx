@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import ChartComponent from './components/ChartComponent';
 import FundamentalPanel from './components/FundamentalPanel';
+import Watchlist from './components/Watchlist';
 import CorrelationCard from './components/CorrelationCard';
 import ScreenerView from './views/ScreenerView';
 import PortfolioView from './views/PortfolioView';
@@ -20,6 +21,7 @@ function App() {
   const [availableSymbols, setAvailableSymbols] = useState({ bist_100: [], forex: [], commodities: [], crypto: [] });
   const [loading, setLoading] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [searchMode, setSearchMode] = useState('main'); // 'main' or 'watchlist'
   const abortRef = useRef(null);
 
   const fetchData = useCallback(async () => {
@@ -179,8 +181,34 @@ function App() {
   useEffect(() => {
     fetchIndices();
     const timerId = window.setInterval(fetchIndices, 60000);
-    return () => window.clearInterval(timerId);
+
+    const handleOpenWatchlistSearch = () => {
+      setSearchMode('watchlist');
+      setIsSearchModalOpen(true);
+    };
+    window.addEventListener('openSymbolSearch', handleOpenWatchlistSearch);
+
+    return () => {
+      window.clearInterval(timerId);
+      window.removeEventListener('openSymbolSearch', handleOpenWatchlistSearch);
+    };
   }, []);
+
+  const handleSymbolSelect = async (s) => {
+    if (searchMode === 'watchlist') {
+      try {
+        await axios.post('http://localhost:8000/api/watchlist', { symbol: s });
+        // Trigger a refresh event or similar if needed, 
+        // but Watchlist component polls or we can use an event
+        window.dispatchEvent(new CustomEvent('watchlistUpdated'));
+      } catch (err) {
+        console.error("Error adding to watchlist:", err);
+      }
+    } else {
+      setSymbol(s);
+    }
+    setIsSearchModalOpen(false);
+  };
 
   return (
     <div className="app-container">
@@ -266,9 +294,19 @@ function App() {
               />
             </section>
 
-            <aside className="fundamental-section">
-              <FundamentalPanel data={fundamental} loading={loading} />
-              <CorrelationCard data={data.correlation} />
+            <aside className="fundamental-section" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+              <div style={{ flex: '1', minHeight: '300px', display: 'flex', flexDirection: 'column', borderBottom: '1px solid var(--border-color)', overflow: 'hidden' }}>
+                <Watchlist onSelectSymbol={(s) => {
+                  setSearchMode('main');
+                  setSymbol(s);
+                }} />
+              </div>
+              <div style={{ flex: '1', overflowY: 'auto', padding: '16px' }}>
+                <FundamentalPanel data={fundamental} loading={loading} />
+                <div style={{ marginTop: '16px' }}>
+                  <CorrelationCard data={data.correlation} />
+                </div>
+              </div>
             </aside>
           </>
         ) : view === 'screener' ? (
@@ -302,7 +340,7 @@ function App() {
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
         symbols={availableSymbols}
-        onSelect={(s) => setSymbol(s)}
+        onSelect={handleSymbolSelect}
       />
     </div>
   );

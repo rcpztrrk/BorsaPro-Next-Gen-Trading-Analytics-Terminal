@@ -127,7 +127,7 @@ body {
 .main-content {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 360px;
   /* Chart Area | Right Panel */
   grid-template-rows: 64px 1fr;
   /* Top Bar | Content */
@@ -172,7 +172,7 @@ body {
 /* 4. Fundamental Section (Right Panel - Glassmorphism) */
 .fundamental-section {
   background-color: var(--bg-color);
-  overflow-y: auto;
+  overflow: hidden;
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
@@ -683,3 +683,21 @@ body {
 .text-blue { color: #2196f3; }
 .screener-view { animation: fadeIn 0.4s ease-out; }
 
+
+@keyframes flash-green {
+    0% { background-color: rgba(38, 166, 154, 0.4); }
+    100% { background-color: transparent; }
+}
+
+@keyframes flash-red {
+    0% { background-color: rgba(239, 83, 80, 0.4); }
+    100% { background-color: transparent; }
+}
+
+.flash-up {
+    animation: flash-green 1s ease-out forwards;
+}
+
+.flash-down {
+    animation: flash-red 1s ease-out forwards;
+}
