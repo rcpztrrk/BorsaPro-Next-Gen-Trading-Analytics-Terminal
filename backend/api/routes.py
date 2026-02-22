@@ -5,7 +5,8 @@ from services.screener_service import ScreenerService
 from services.drawing_service import DrawingService
 from services.portfolio_service import PortfolioService
 from services.watchlist_service import WatchlistService
-from typing import Optional, List
+from services.alert_service import AlertService
+from typing import Optional, List, Dict
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -15,6 +16,41 @@ screener_service = ScreenerService(indicator_service)
 drawing_service = DrawingService()
 portfolio_service = PortfolioService()
 watchlist_service = WatchlistService()
+alert_service = AlertService()
+
+# --- ALERT ENDPOINTS ---
+
+class AlertInput(BaseModel):
+    symbol: str
+    target_price: float
+    condition: str # 'ABOVE' or 'BELOW'
+
+class AlertCheckInput(BaseModel):
+    prices: Dict[str, float]
+
+@router.get("/alerts")
+def get_alerts(active_only: bool = False):
+    return alert_service.get_alerts(active_only=active_only)
+
+@router.post("/alerts")
+def add_alert(input: AlertInput):
+    success = alert_service.add_alert(input.symbol, input.target_price, input.condition)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to add alert")
+    return {"status": "success"}
+
+@router.delete("/alerts/{alert_id}")
+def delete_alert(alert_id: int):
+    success = alert_service.delete_alert(alert_id)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to delete alert")
+    return {"status": "success"}
+
+@router.post("/alerts/check")
+def check_alerts(input: AlertCheckInput):
+    """Checks current prices against alerts and returns triggered ones."""
+    triggered = alert_service.check_alerts(input.prices)
+    return triggered
 
 # --- WATCHLIST ENDPOINTS ---
 
@@ -36,6 +72,11 @@ def get_watchlist_data():
         return []
     
     prices = data_service.fetch_latest_prices(symbols)
+    
+    # Check Alerts
+    flat_prices = {s: d['price'] for s, d in prices.items()}
+    triggered = alert_service.check_alerts(flat_prices)
+    
     result = []
     for s_meta in symbols_data:
         sym = s_meta['symbol']
@@ -45,7 +86,11 @@ def get_watchlist_data():
             "order_index": s_meta['order_index'],
             **p_data
         })
-    return result
+        
+    return {
+        "watchlist": result,
+        "triggered": triggered
+    }
 
 @router.post("/watchlist")
 def add_to_watchlist(input: WatchlistInput):

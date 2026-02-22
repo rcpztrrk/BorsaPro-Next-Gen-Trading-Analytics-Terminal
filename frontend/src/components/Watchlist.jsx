@@ -1,20 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { X, Plus, TrendingUp, TrendingDown, GripVertical, Search } from 'lucide-react';
+import { X, Plus, TrendingUp, TrendingDown, GripVertical, Search, Bell } from 'lucide-react';
+import SetAlertModal from './SetAlertModal';
 
 const API = 'http://localhost:8000/api';
 
 const Watchlist = ({ onSelectSymbol }) => {
     const [list, setList] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedAlertSymbol, setSelectedAlertSymbol] = useState(null);
     const prevPricesRef = useRef({});
 
     const fetchWatchlist = async () => {
         try {
             const res = await axios.get(`${API}/watchlist/data`);
+            const { watchlist, triggered } = res.data;
+
+            if (triggered && triggered.length > 0) {
+                window.dispatchEvent(new CustomEvent('priceAlertTriggered', { detail: triggered }));
+                window.dispatchEvent(new CustomEvent('alertsUpdated'));
+            }
+
             setList(prevList => {
-                // Determine flash classes
-                return res.data.map(item => {
+                return watchlist.map(item => {
                     const prev = prevPricesRef.current[item.symbol];
                     let flashClass = '';
                     if (prev !== undefined) {
@@ -99,6 +107,17 @@ const Watchlist = ({ onSelectSymbol }) => {
                                 }}>
                                     {item.percent >= 0 ? '+' : ''}{item.percent.toFixed(2)}%
                                 </span>
+                                <button
+                                    className="alert-btn"
+                                    style={styles.alertBtn}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedAlertSymbol(item);
+                                    }}
+                                    title="Alarm Kur"
+                                >
+                                    <Bell size={12} />
+                                </button>
                                 <button className="remove-btn" style={styles.removeBtn} onClick={(e) => removeFromWatchlist(e, item.symbol)}>
                                     <X size={12} />
                                 </button>
@@ -107,6 +126,13 @@ const Watchlist = ({ onSelectSymbol }) => {
                     ))
                 )}
             </div>
+
+            <SetAlertModal
+                isOpen={!!selectedAlertSymbol}
+                onClose={() => setSelectedAlertSymbol(null)}
+                symbol={selectedAlertSymbol?.symbol}
+                currentPrice={selectedAlertSymbol?.price}
+            />
 
             <style dangerouslySetInnerHTML={{
                 __html: `
@@ -123,12 +149,13 @@ const Watchlist = ({ onSelectSymbol }) => {
                 .watchlist-item:hover {
                     background: rgba(255,255,255,0.03);
                 }
-                .watchlist-item .remove-btn {
+                .watchlist-item:hover .remove-btn,
+                .watchlist-item:hover .alert-btn {
+                    opacity: 1;
+                }
+                .watchlist-item .alert-btn {
                     opacity: 0;
                     transition: 0.2s;
-                }
-                .watchlist-item:hover .remove-btn {
-                    opacity: 1;
                 }
                 .price {
                     transition: background 0.5s ease;
@@ -218,6 +245,13 @@ const styles = {
         textAlign: 'right'
     },
     removeBtn: {
+        background: 'transparent',
+        border: 'none',
+        color: '#787b86',
+        cursor: 'pointer',
+        padding: '2px'
+    },
+    alertBtn: {
         background: 'transparent',
         border: 'none',
         color: '#787b86',

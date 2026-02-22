@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Target, Activity, Landmark, TrendingUp, DollarSign, Wallet } from 'lucide-react';
+import { Target, Activity, Landmark, TrendingUp, DollarSign, Wallet, Bell } from 'lucide-react';
+import SetAlertModal from './SetAlertModal';
 
-const FundamentalPanel = ({ data, loading }) => {
+const FundamentalPanel = ({ data, symbol, loading }) => {
     const [activeTab, setActiveTab] = useState('ozet');
+    const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
 
     if (loading) {
         return (
@@ -109,9 +111,23 @@ const FundamentalPanel = ({ data, loading }) => {
     return (
         <div className="fundamental-panel">
             <div className="glass-card panel-header" style={{ marginBottom: '16px' }}>
-                <div className="stock-title">
-                    <h3>{data.name}</h3>
-                    <span className="sector-badge">{data.sector || 'Genel'}</span>
+                <div className="stock-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <div>
+                        <h3 style={{ margin: 0 }}>{data.name}</h3>
+                        <span className="sector-badge">{data.sector || 'Genel'}</span>
+                    </div>
+                    <button
+                        onClick={() => setIsAlertModalOpen(true)}
+                        style={{
+                            background: 'rgba(255,255,255,0.05)', border: '1px solid #30363d', borderRadius: '6px',
+                            padding: '6px', cursor: 'pointer', color: '#787b86', display: 'flex', alignItems: 'center'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#787b86'}
+                        title="Alarm Kur"
+                    >
+                        <Bell size={16} />
+                    </button>
                 </div>
                 <div className="price-summary">
                     <span className="current-price mono">{formatNum(data.son_fiyat)} ₺</span>
@@ -136,6 +152,13 @@ const FundamentalPanel = ({ data, loading }) => {
             {activeTab === 'gelir' && renderFinancialList(data.gelir_tablosu, "Gelir Tablosu", <TrendingUp size={14} />)}
             {activeTab === 'bilanco' && renderFinancialList(data.bilanco, "Bilanço", <Landmark size={14} />)}
             {activeTab === 'nakit' && renderFinancialList(data.nakit_akim, "Nakit Akışı", <Wallet size={14} />)}
+
+            <SetAlertModal
+                isOpen={isAlertModalOpen}
+                onClose={() => setIsAlertModalOpen(false)}
+                symbol={symbol}
+                currentPrice={data.son_fiyat}
+            />
         </div>
     );
 };

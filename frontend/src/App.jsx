@@ -3,6 +3,7 @@ import axios from 'axios';
 import ChartComponent from './components/ChartComponent';
 import FundamentalPanel from './components/FundamentalPanel';
 import Watchlist from './components/Watchlist';
+import AlertsPanel from './components/AlertsPanel';
 import CorrelationCard from './components/CorrelationCard';
 import ScreenerView from './views/ScreenerView';
 import PortfolioView from './views/PortfolioView';
@@ -22,6 +23,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [searchMode, setSearchMode] = useState('main'); // 'main' or 'watchlist'
+  const [sidebarTab, setSidebarTab] = useState('analysis'); // 'analysis' or 'alerts'
   const abortRef = useRef(null);
 
   const fetchData = useCallback(async () => {
@@ -188,9 +190,31 @@ function App() {
     };
     window.addEventListener('openSymbolSearch', handleOpenWatchlistSearch);
 
+    const handlePriceAlert = (e) => {
+      const triggered = e.detail;
+      triggered.forEach(alert => {
+        const title = `🔔 Fiyat Alarmı: ${alert.symbol}`;
+        const body = `${alert.symbol} fiyatı ${alert.target_price} ₺ ${alert.condition === 'ABOVE' ? 'üzerine çıktı' : 'altına indi'}!`;
+
+        // Browser Notification
+        if (Notification.permission === 'granted') {
+          new Notification(title, { body, icon: '/logo192.png' });
+        } else {
+          alert(`${title}\n${body}`);
+        }
+      });
+    };
+    window.addEventListener('priceAlertTriggered', handlePriceAlert);
+
+    // Request Notification Permission
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
     return () => {
       window.clearInterval(timerId);
       window.removeEventListener('openSymbolSearch', handleOpenWatchlistSearch);
+      window.removeEventListener('priceAlertTriggered', handlePriceAlert);
     };
   }, []);
 
@@ -301,11 +325,35 @@ function App() {
                   setSymbol(s);
                 }} />
               </div>
-              <div style={{ flex: '1', overflowY: 'auto', padding: '16px' }}>
-                <FundamentalPanel data={fundamental} loading={loading} />
-                <div style={{ marginTop: '16px' }}>
-                  <CorrelationCard data={data.correlation} />
-                </div>
+
+              <div className="sidebar-tabs" style={{ display: 'flex', background: '#1e222d', borderBottom: '1px solid var(--border-color)' }}>
+                <button
+                  onClick={() => setSidebarTab('analysis')}
+                  style={{
+                    flex: 1, padding: '10px', background: 'transparent', border: 'none', color: sidebarTab === 'analysis' ? 'var(--accent)' : '#787b86',
+                    fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', borderBottom: sidebarTab === 'analysis' ? '2px solid var(--accent)' : 'none'
+                  }}
+                >ANALİZ</button>
+                <button
+                  onClick={() => setSidebarTab('alerts')}
+                  style={{
+                    flex: 1, padding: '10px', background: 'transparent', border: 'none', color: sidebarTab === 'alerts' ? 'var(--accent)' : '#787b86',
+                    fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', borderBottom: sidebarTab === 'alerts' ? '2px solid var(--accent)' : 'none'
+                  }}
+                >ALARMLAR</button>
+              </div>
+
+              <div style={{ flex: '1', overflowY: 'auto' }}>
+                {sidebarTab === 'analysis' ? (
+                  <div style={{ padding: '16px' }}>
+                    <FundamentalPanel data={fundamental} symbol={symbol} loading={loading} />
+                    <div style={{ marginTop: '16px' }}>
+                      <CorrelationCard data={data.correlation} />
+                    </div>
+                  </div>
+                ) : (
+                  <AlertsPanel />
+                )}
               </div>
             </aside>
           </>
