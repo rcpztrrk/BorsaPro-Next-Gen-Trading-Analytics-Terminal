@@ -4,6 +4,7 @@ import ChartComponent from './components/ChartComponent';
 import FundamentalPanel from './components/FundamentalPanel';
 import Watchlist from './components/Watchlist';
 import AlertsPanel from './components/AlertsPanel';
+import NewsPanel from './components/NewsPanel';
 import CorrelationCard from './components/CorrelationCard';
 import ScreenerView from './views/ScreenerView';
 import PortfolioView from './views/PortfolioView';
@@ -341,6 +342,13 @@ function App() {
                     fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', borderBottom: sidebarTab === 'alerts' ? '2px solid var(--accent)' : 'none'
                   }}
                 >ALARMLAR</button>
+                <button
+                  onClick={() => setSidebarTab('news')}
+                  style={{
+                    flex: 1, padding: '10px', background: 'transparent', border: 'none', color: sidebarTab === 'news' ? 'var(--accent)' : '#787b86',
+                    fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', borderBottom: sidebarTab === 'news' ? '2px solid var(--accent)' : 'none'
+                  }}
+                >HABERLER</button>
               </div>
 
               <div style={{ flex: '1', overflowY: 'auto' }}>
@@ -351,8 +359,10 @@ function App() {
                       <CorrelationCard data={data.correlation} />
                     </div>
                   </div>
-                ) : (
+                ) : sidebarTab === 'alerts' ? (
                   <AlertsPanel />
+                ) : (
+                  <NewsPanel symbol={symbol} />
                 )}
               </div>
             </aside>

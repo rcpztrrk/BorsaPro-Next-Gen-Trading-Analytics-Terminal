@@ -6,10 +6,21 @@ from services.drawing_service import DrawingService
 from services.portfolio_service import PortfolioService
 from services.watchlist_service import WatchlistService
 from services.alert_service import AlertService
+from services.news_service import news_service
 from typing import Optional, List, Dict
 from pydantic import BaseModel
 
 router = APIRouter()
+
+@router.get("/news")
+def get_general_news():
+    return news_service.get_news()
+
+@router.get("/news/{symbol}")
+def get_stock_news(symbol: str):
+    return news_service.get_news(symbol)
+
+# ... existing routes ...
 data_service = DataService()
 indicator_service = IndicatorService()
 screener_service = ScreenerService(indicator_service)
