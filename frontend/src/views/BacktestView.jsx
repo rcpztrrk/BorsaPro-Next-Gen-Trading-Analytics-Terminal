@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { createChart, CrosshairMode, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
+import { createChart, CrosshairMode, CandlestickSeries, HistogramSeries, LineSeries } from 'lightweight-charts';
 import { Play, Pause, SkipForward, RotateCcw, Search, TrendingUp, TrendingDown, BarChart2, FastForward } from 'lucide-react';
 
 const BacktestView = ({ symbol, onOpenSearch, onSelectSymbol }) => {
@@ -195,16 +195,16 @@ const BacktestView = ({ symbol, onOpenSearch, onSelectSymbol }) => {
         });
 
         // Initialize Indicators
-        const ma20Series = chart.addLineSeries({ color: '#2962ff', lineWidth: 1, title: 'MA20', visible: indicatorConfig.ma20 });
-        const ma50Series = chart.addLineSeries({ color: '#ff9800', lineWidth: 1, title: 'MA50', visible: indicatorConfig.ma50 });
-        const ma200Series = chart.addLineSeries({ color: '#f44336', lineWidth: 1, title: 'MA200', visible: indicatorConfig.ma200 });
-        const ema9Series = chart.addLineSeries({ color: '#4caf50', lineWidth: 1, title: 'EMA9', visible: indicatorConfig.ema9 });
-        const ema21Series = chart.addLineSeries({ color: '#9c27b0', lineWidth: 1, title: 'EMA21', visible: indicatorConfig.ema21 });
-        const bbUpperSeries = chart.addLineSeries({ color: 'rgba(173, 216, 230, 0.4)', lineWidth: 1, title: 'BB Upper', visible: indicatorConfig.bb });
-        const bbMiddleSeries = chart.addLineSeries({ color: 'rgba(173, 216, 230, 0.4)', lineWidth: 1, title: 'BB Middle', visible: indicatorConfig.bb, lineStyle: 2 });
-        const bbLowerSeries = chart.addLineSeries({ color: 'rgba(173, 216, 230, 0.4)', lineWidth: 1, title: 'BB Lower', visible: indicatorConfig.bb });
+        const ma20Series = chart.addSeries(LineSeries, { color: '#2962ff', lineWidth: 1, title: 'MA20', visible: indicatorConfig.ma20 });
+        const ma50Series = chart.addSeries(LineSeries, { color: '#ff9800', lineWidth: 1, title: 'MA50', visible: indicatorConfig.ma50 });
+        const ma200Series = chart.addSeries(LineSeries, { color: '#f44336', lineWidth: 1, title: 'MA200', visible: indicatorConfig.ma200 });
+        const ema9Series = chart.addSeries(LineSeries, { color: '#4caf50', lineWidth: 1, title: 'EMA9', visible: indicatorConfig.ema9 });
+        const ema21Series = chart.addSeries(LineSeries, { color: '#9c27b0', lineWidth: 1, title: 'EMA21', visible: indicatorConfig.ema21 });
+        const bbUpperSeries = chart.addSeries(LineSeries, { color: 'rgba(173, 216, 230, 0.4)', lineWidth: 1, title: 'BB Upper', visible: indicatorConfig.bb });
+        const bbMiddleSeries = chart.addSeries(LineSeries, { color: 'rgba(173, 216, 230, 0.4)', lineWidth: 1, title: 'BB Middle', visible: indicatorConfig.bb, lineStyle: 2 });
+        const bbLowerSeries = chart.addSeries(LineSeries, { color: 'rgba(173, 216, 230, 0.4)', lineWidth: 1, title: 'BB Lower', visible: indicatorConfig.bb });
 
-        const rsiSeries = chart.addLineSeries({
+        const rsiSeries = chart.addSeries(LineSeries, {
             color: '#787b86',
             lineWidth: 1,
             title: 'RSI',
