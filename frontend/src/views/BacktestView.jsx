@@ -16,6 +16,12 @@ const BacktestView = ({ symbol, onOpenSearch, onSelectSymbol }) => {
     const [capital, setCapital] = useState(10000);
     const [initialCapital] = useState(10000);
     const [equityCurve, setEquityCurve] = useState([]);
+    const [indicatorConfig, setIndicatorConfig] = useState({
+        ma20: true, ma50: true, ma200: false,
+        ema9: false, ema21: false,
+        bb: false,
+        rsi: false
+    });
 
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
@@ -25,13 +31,24 @@ const BacktestView = ({ symbol, onOpenSearch, onSelectSymbol }) => {
     const [speed, setSpeed] = useState(500); // ms between candles
     const markersRef = useRef([]);
 
+    // Indicator Refs
+    const ma20Ref = useRef(null);
+    const ma50Ref = useRef(null);
+    const ma200Ref = useRef(null);
+    const ema9Ref = useRef(null);
+    const ema21Ref = useRef(null);
+    const bbUpperRef = useRef(null);
+    const bbMiddleRef = useRef(null);
+    const bbLowerRef = useRef(null);
+    const rsiRef = useRef(null);
+
     // Fetch historical data
     const fetchData = useCallback(async (sym, inv) => {
         setPhase('loading');
         const period = 'max';
 
         try {
-            const resp = await axios.get(`http://localhost:8000/api/stock/${sym}?period=${period}&interval=${inv}`);
+            const resp = await axios.get(`http://localhost:8000/api/stock/${sym}?period=${period}&interval=${inv}&indicators=true`);
             const priceData = resp.data.price_data || resp.data.price || [];
             if (priceData.length === 0) return;
 
@@ -49,6 +66,12 @@ const BacktestView = ({ symbol, onOpenSearch, onSelectSymbol }) => {
                     low: Number(d.Low ?? d.low),
                     close: Number(d.Close ?? d.close),
                     volume: Number(d.Volume ?? d.volume ?? 0),
+                    // Indicators
+                    ma20: d.MA20, ma50: d.MA50, ma200: d.MA200,
+                    ema9: d.EMA9, ema21: d.EMA21,
+                    bbUpper: d.BB_UPPER, bbMiddle: d.BB_MIDDLE, bbLower: d.BB_LOWER,
+                    rsi: d.RSI,
+                    macd: d.MACD, macdSignal: d.MACD_SIGNAL
                 };
             });
 
@@ -170,6 +193,28 @@ const BacktestView = ({ symbol, onOpenSearch, onSelectSymbol }) => {
             priceFormat: { type: 'volume' },
             priceScaleId: '',
         });
+
+        // Initialize Indicators
+        const ma20Series = chart.addLineSeries({ color: '#2962ff', lineWidth: 1, title: 'MA20', visible: indicatorConfig.ma20 });
+        const ma50Series = chart.addLineSeries({ color: '#ff9800', lineWidth: 1, title: 'MA50', visible: indicatorConfig.ma50 });
+        const ma200Series = chart.addLineSeries({ color: '#f44336', lineWidth: 1, title: 'MA200', visible: indicatorConfig.ma200 });
+        const ema9Series = chart.addLineSeries({ color: '#4caf50', lineWidth: 1, title: 'EMA9', visible: indicatorConfig.ema9 });
+        const ema21Series = chart.addLineSeries({ color: '#9c27b0', lineWidth: 1, title: 'EMA21', visible: indicatorConfig.ema21 });
+        const bbUpperSeries = chart.addLineSeries({ color: 'rgba(173, 216, 230, 0.4)', lineWidth: 1, title: 'BB Upper', visible: indicatorConfig.bb });
+        const bbMiddleSeries = chart.addLineSeries({ color: 'rgba(173, 216, 230, 0.4)', lineWidth: 1, title: 'BB Middle', visible: indicatorConfig.bb, lineStyle: 2 });
+        const bbLowerSeries = chart.addLineSeries({ color: 'rgba(173, 216, 230, 0.4)', lineWidth: 1, title: 'BB Lower', visible: indicatorConfig.bb });
+
+        const rsiSeries = chart.addLineSeries({
+            color: '#787b86',
+            lineWidth: 1,
+            title: 'RSI',
+            visible: indicatorConfig.rsi,
+            priceScaleId: 'rsi',
+        });
+        chart.priceScale('rsi').applyOptions({
+            scaleMargins: { top: 0.7, bottom: 0.1 },
+            borderVisible: false,
+        });
         volumeSeries.priceScale().applyOptions({
             scaleMargins: { top: 0.85, bottom: 0 },
         });
@@ -180,6 +225,17 @@ const BacktestView = ({ symbol, onOpenSearch, onSelectSymbol }) => {
             value: c.volume,
             color: c.close >= c.open ? 'rgba(8,153,129,0.3)' : 'rgba(242,54,69,0.3)',
         })));
+
+        // Set Indicator Data
+        ma20Series.setData(visibleCandles.filter(c => c.ma20).map(c => ({ time: c.time, value: c.ma20 })));
+        ma50Series.setData(visibleCandles.filter(c => c.ma50).map(c => ({ time: c.time, value: c.ma50 })));
+        ma200Series.setData(visibleCandles.filter(c => c.ma200).map(c => ({ time: c.time, value: c.ma200 })));
+        ema9Series.setData(visibleCandles.filter(c => c.ema9).map(c => ({ time: c.time, value: c.ema9 })));
+        ema21Series.setData(visibleCandles.filter(c => c.ema21).map(c => ({ time: c.time, value: c.ema21 })));
+        bbUpperSeries.setData(visibleCandles.filter(c => c.bbUpper).map(c => ({ time: c.time, value: c.bbUpper })));
+        bbMiddleSeries.setData(visibleCandles.filter(c => c.bbMiddle).map(c => ({ time: c.time, value: c.bbMiddle })));
+        bbLowerSeries.setData(visibleCandles.filter(c => c.bbLower).map(c => ({ time: c.time, value: c.bbLower })));
+        rsiSeries.setData(visibleCandles.filter(c => c.rsi).map(c => ({ time: c.time, value: c.rsi })));
 
         // İlk yükleme: veriyi göster, sonra autoScale kapat
         // → böylece kullanıcı sayfa açılır açılmaz serbestçe hareket edebilir
@@ -194,6 +250,15 @@ const BacktestView = ({ symbol, onOpenSearch, onSelectSymbol }) => {
         chartRef.current = chart;
         candleSeriesRef.current = candleSeries;
         volumeSeriesRef.current = volumeSeries;
+        ma20Ref.current = ma20Series;
+        ma50Ref.current = ma50Series;
+        ma200Ref.current = ma200Series;
+        ema9Ref.current = ema9Series;
+        ema21Ref.current = ema21Series;
+        bbUpperRef.current = bbUpperSeries;
+        bbMiddleRef.current = bbMiddleSeries;
+        bbLowerRef.current = bbLowerSeries;
+        rsiRef.current = rsiSeries;
 
         // Click handler for setting start line
         chart.subscribeClick((param) => {
@@ -215,6 +280,17 @@ const BacktestView = ({ symbol, onOpenSearch, onSelectSymbol }) => {
                 value: c.volume,
                 color: c.close >= c.open ? 'rgba(8,153,129,0.3)' : 'rgba(242,54,69,0.3)',
             })));
+
+            // Indicators
+            ma20Ref.current?.setData(sliced.filter(c => c.ma20).map(c => ({ time: c.time, value: c.ma20 })));
+            ma50Ref.current?.setData(sliced.filter(c => c.ma50).map(c => ({ time: c.time, value: c.ma50 })));
+            ma200Ref.current?.setData(sliced.filter(c => c.ma200).map(c => ({ time: c.time, value: c.ma200 })));
+            ema9Ref.current?.setData(sliced.filter(c => c.ema9).map(c => ({ time: c.time, value: c.ema9 })));
+            ema21Ref.current?.setData(sliced.filter(c => c.ema21).map(c => ({ time: c.time, value: c.ema21 })));
+            bbUpperRef.current?.setData(sliced.filter(c => c.bbUpper).map(c => ({ time: c.time, value: c.bbUpper })));
+            bbMiddleRef.current?.setData(sliced.filter(c => c.bbMiddle).map(c => ({ time: c.time, value: c.bbMiddle })));
+            bbLowerRef.current?.setData(sliced.filter(c => c.bbLower).map(c => ({ time: c.time, value: c.bbLower })));
+            rsiRef.current?.setData(sliced.filter(c => c.rsi).map(c => ({ time: c.time, value: c.rsi })));
             // fitContent() removed to preserve user selection zoom
         });
 
@@ -261,6 +337,17 @@ const BacktestView = ({ symbol, onOpenSearch, onSelectSymbol }) => {
                 color: nextCandle.close >= nextCandle.open ? 'rgba(8,153,129,0.3)' : 'rgba(242,54,69,0.3)',
             });
         }
+
+        // Indicators
+        if (nextCandle.ma20) ma20Ref.current?.update({ time: nextCandle.time, value: nextCandle.ma20 });
+        if (nextCandle.ma50) ma50Ref.current?.update({ time: nextCandle.time, value: nextCandle.ma50 });
+        if (nextCandle.ma200) ma200Ref.current?.update({ time: nextCandle.time, value: nextCandle.ma200 });
+        if (nextCandle.ema9) ema9Ref.current?.update({ time: nextCandle.time, value: nextCandle.ema9 });
+        if (nextCandle.ema21) ema21Ref.current?.update({ time: nextCandle.time, value: nextCandle.ema21 });
+        if (nextCandle.bbUpper) bbUpperRef.current?.update({ time: nextCandle.time, value: nextCandle.bbUpper });
+        if (nextCandle.bbMiddle) bbMiddleRef.current?.update({ time: nextCandle.time, value: nextCandle.bbMiddle });
+        if (nextCandle.bbLower) bbLowerRef.current?.update({ time: nextCandle.time, value: nextCandle.bbLower });
+        if (nextCandle.rsi) rsiRef.current?.update({ time: nextCandle.time, value: nextCandle.rsi });
 
         // Track equity
         const currentEquity = position
@@ -371,8 +458,32 @@ const BacktestView = ({ symbol, onOpenSearch, onSelectSymbol }) => {
                 color: c.close >= c.open ? 'rgba(8,153,129,0.3)' : 'rgba(242,54,69,0.3)',
             })));
         }
+
+        // Indicators
+        ma20Ref.current?.setData(allCandles.filter(c => c.ma20).map(c => ({ time: c.time, value: c.ma20 })));
+        ma50Ref.current?.setData(allCandles.filter(c => c.ma50).map(c => ({ time: c.time, value: c.ma50 })));
+        ma200Ref.current?.setData(allCandles.filter(c => c.ma200).map(c => ({ time: c.time, value: c.ma200 })));
+        ema9Ref.current?.setData(allCandles.filter(c => c.ema9).map(c => ({ time: c.time, value: c.ema9 })));
+        ema21Ref.current?.setData(allCandles.filter(c => c.ema21).map(c => ({ time: c.time, value: c.ema21 })));
+        bbUpperRef.current?.setData(allCandles.filter(c => c.bbUpper).map(c => ({ time: c.time, value: c.bbUpper })));
+        bbMiddleRef.current?.setData(allCandles.filter(c => c.bbMiddle).map(c => ({ time: c.time, value: c.bbMiddle })));
+        bbLowerRef.current?.setData(allCandles.filter(c => c.bbLower).map(c => ({ time: c.time, value: c.bbLower })));
+        rsiRef.current?.setData(allCandles.filter(c => c.rsi).map(c => ({ time: c.time, value: c.rsi })));
         // fitContent() removed
     };
+
+    // Manage Indicator Visibility
+    useEffect(() => {
+        ma20Ref.current?.applyOptions({ visible: indicatorConfig.ma20 });
+        ma50Ref.current?.applyOptions({ visible: indicatorConfig.ma50 });
+        ma200Ref.current?.applyOptions({ visible: indicatorConfig.ma200 });
+        ema9Ref.current?.applyOptions({ visible: indicatorConfig.ema9 });
+        ema21Ref.current?.applyOptions({ visible: indicatorConfig.ema21 });
+        bbUpperRef.current?.applyOptions({ visible: indicatorConfig.bb });
+        bbMiddleRef.current?.applyOptions({ visible: indicatorConfig.bb });
+        bbLowerRef.current?.applyOptions({ visible: indicatorConfig.bb });
+        rsiRef.current?.applyOptions({ visible: indicatorConfig.rsi });
+    }, [indicatorConfig]);
 
     // Compute stats
     const totalPnl = trades.reduce((sum, t) => sum + t.pnl, 0);
@@ -462,6 +573,35 @@ const BacktestView = ({ symbol, onOpenSearch, onSelectSymbol }) => {
                             >
                                 {tf.toUpperCase()}
                             </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Indicator Controls */}
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid #2a2e39' }}>
+                    <label style={{ fontSize: '0.7rem', color: '#787b86', marginBottom: '8px', display: 'block' }}>İndikatörler</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {[
+                            { key: 'ma20', label: 'MA 20', color: '#2962ff' },
+                            { key: 'ma50', label: 'MA 50', color: '#ff9800' },
+                            { key: 'ma200', label: 'MA 200', color: '#f44336' },
+                            { key: 'ema9', label: 'EMA 9', color: '#4caf50' },
+                            { key: 'ema21', label: 'EMA 21', color: '#9c27b0' },
+                            { key: 'bb', label: 'Bollinger Bantları', color: 'rgba(173, 216, 230, 0.8)' },
+                            { key: 'rsi', label: 'RSI (14)', color: '#787b86' },
+                        ].map(ind => (
+                            <div key={ind.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '8px', height: '2px', background: ind.color }}></div>
+                                    <span style={{ fontSize: '0.75rem' }}>{ind.label}</span>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    checked={indicatorConfig[ind.key]}
+                                    onChange={(e) => setIndicatorConfig(prev => ({ ...prev, [ind.key]: e.target.checked }))}
+                                    style={{ cursor: 'pointer' }}
+                                />
+                            </div>
                         ))}
                     </div>
                 </div>
