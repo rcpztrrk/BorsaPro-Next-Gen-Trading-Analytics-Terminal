@@ -43,3 +43,5 @@ frontend/build/
 frontend/.env
 frontend/.env.*.local
 frontend/*.log
+# Documentation & Roadmap
+docs/

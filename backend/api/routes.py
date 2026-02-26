@@ -7,10 +7,26 @@ from services.portfolio_service import PortfolioService
 from services.watchlist_service import WatchlistService
 from services.alert_service import AlertService
 from services.news_service import news_service
+from services.backtest_service import backtest_service
 from typing import Optional, List, Dict
 from pydantic import BaseModel
 
 router = APIRouter()
+
+class BacktestRequest(BaseModel):
+    symbol: str
+    strategy: str
+    params: dict
+    initial_capital: float = 10000.0
+
+@router.post("/backtest")
+async def run_backtest(req: BacktestRequest):
+    return backtest_service.run_backtest(
+        req.symbol, 
+        req.strategy, 
+        req.params, 
+        req.initial_capital
+    )
 
 @router.get("/news")
 def get_general_news():

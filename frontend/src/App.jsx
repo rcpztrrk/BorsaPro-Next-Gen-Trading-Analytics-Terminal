@@ -5,11 +5,13 @@ import FundamentalPanel from './components/FundamentalPanel';
 import Watchlist from './components/Watchlist';
 import AlertsPanel from './components/AlertsPanel';
 import NewsPanel from './components/NewsPanel';
+import BacktestPanel from './components/BacktestPanel';
 import CorrelationCard from './components/CorrelationCard';
 import ScreenerView from './views/ScreenerView';
 import PortfolioView from './views/PortfolioView';
+import BacktestView from './views/BacktestView';
 import SymbolSearchModal from './components/SymbolSearchModal';
-import { Activity, Search, RefreshCw, Settings, BarChart2, PieChart, Briefcase, Plus } from 'lucide-react';
+import { Activity, Search, RefreshCw, Settings, BarChart2, PieChart, Briefcase, Plus, History } from 'lucide-react';
 import './App.css';
 
 function App() {
@@ -25,6 +27,7 @@ function App() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [searchMode, setSearchMode] = useState('main'); // 'main' or 'watchlist'
   const [sidebarTab, setSidebarTab] = useState('analysis'); // 'analysis' or 'alerts'
+  const [backtestSymbol, setBacktestSymbol] = useState('THYAO.IS');
   const abortRef = useRef(null);
 
   const fetchData = useCallback(async () => {
@@ -223,12 +226,12 @@ function App() {
     if (searchMode === 'watchlist') {
       try {
         await axios.post('http://localhost:8000/api/watchlist', { symbol: s });
-        // Trigger a refresh event or similar if needed, 
-        // but Watchlist component polls or we can use an event
         window.dispatchEvent(new CustomEvent('watchlistUpdated'));
       } catch (err) {
         console.error("Error adding to watchlist:", err);
       }
+    } else if (searchMode === 'backtest') {
+      setBacktestSymbol(s);
     } else {
       setSymbol(s);
     }
@@ -249,6 +252,9 @@ function App() {
           </button>
           <button className={view === 'portfolio' ? 'active' : ''} onClick={() => setView('portfolio')}>
             <Briefcase size={20} /> <span>Portfoy</span>
+          </button>
+          <button className={view === 'backtest' ? 'active' : ''} onClick={() => setView('backtest')}>
+            <History size={20} /> <span>Backtest</span>
           </button>
           <button>
             <Settings size={20} /> <span>Ayarlar</span>
@@ -349,6 +355,13 @@ function App() {
                     fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', borderBottom: sidebarTab === 'news' ? '2px solid var(--accent)' : 'none'
                   }}
                 >HABERLER</button>
+                <button
+                  onClick={() => setSidebarTab('backtest')}
+                  style={{
+                    flex: 1, padding: '10px', background: 'transparent', border: 'none', color: sidebarTab === 'backtest' ? 'var(--accent)' : '#787b86',
+                    fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', borderBottom: sidebarTab === 'backtest' ? '2px solid var(--accent)' : 'none'
+                  }}
+                >BACKTEST</button>
               </div>
 
               <div style={{ flex: '1', overflowY: 'auto' }}>
@@ -361,8 +374,10 @@ function App() {
                   </div>
                 ) : sidebarTab === 'alerts' ? (
                   <AlertsPanel />
-                ) : (
+                ) : sidebarTab === 'news' ? (
                   <NewsPanel symbol={symbol} />
+                ) : (
+                  <BacktestPanel symbol={symbol} />
                 )}
               </div>
             </aside>
@@ -390,6 +405,26 @@ function App() {
               setSymbol(sym);
               setView('chart');
             }} />
+          </div>
+        ) : view === 'backtest' ? (
+          <div style={{
+            gridColumn: '1 / span 2',
+            gridRow: '1 / span 2',
+            background: 'var(--bg-color)',
+            overflow: 'hidden'
+          }}>
+            <BacktestView
+              symbol={backtestSymbol}
+              availableSymbols={availableSymbols}
+              onOpenSearch={() => {
+                setSearchMode('backtest');
+                setIsSearchModalOpen(true);
+              }}
+              onSelectSymbol={(sym) => {
+                setSymbol(sym);
+                setView('chart');
+              }}
+            />
           </div>
         ) : null}
       </main>

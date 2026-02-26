@@ -140,22 +140,28 @@ const ChartComponent = ({ symbol, data, indicators, interval, setInterval }) => 
         },
         rightPriceScale: {
             borderColor: '#30363d',
-            autoScale: true,
+            autoScale: false,        // Serbest dikey hareket iin varsaylan false
             axisLabelVisible: true,
             expandLimit: 0,
-            // Sabit genişlik (width) ve minimumWidth kullanıyoruz. 
-            // Bu, farklı fiyat basamaklarına sahip grafiklerin (Fiyat vs RSI) 
-            // çizim alanlarını yatayda tam aynı hizada tutar.
             width: 80,
             minimumWidth: 80,
+            borderVisible: true,
+            scaleMargins: {
+                top: 0.1,
+                bottom: 0.15,
+            },
         },
         timeScale: {
             borderColor: '#30363d',
             timeVisible: true,
-            rightOffset: 12,
-            barSpacing: 6,
+            rightOffset: 200,        // Bol miktarda gelecek alanı
+            barSpacing: 8,
+            minBarSpacing: 0.0001,   // Aşırı uzaklaşabilme (Zoom Out)
+            fixLeftEdge: false,
+            fixRightEdge: false,
             tickMarkFormatter: (time) => timeFormatter(time),
             shiftVisibleRangeOnNewBar: false,
+            allowShiftVisibleRangeOnWhitespaceReplacement: true,
         },
         localization: {
             timeFormatter: (time) => timeFormatter(time),
@@ -180,8 +186,28 @@ const ChartComponent = ({ symbol, data, indicators, interval, setInterval }) => 
                 visible: true
             },
         },
-        handleScroll: true,
-        handleScale: true,
+        handleScroll: {
+            mouseWheel: true,
+            pressedMouseMove: true,
+            horzTouchDrag: true,
+            vertTouchDrag: true,
+        },
+        handleScale: {
+            mouseWheel: true,
+            pinch: true,
+            axisPressedMouseMove: {
+                time: true,
+                price: true,
+            },
+            axisDoubleClickReset: {
+                time: true,
+                price: true,
+            },
+        },
+        kineticScroll: {
+            touch: false,
+            mouse: false,
+        },
         watermark: { visible: false },
     }), [timeFormatter]);
     useEffect(() => {
@@ -657,7 +683,13 @@ const ChartComponent = ({ symbol, data, indicators, interval, setInterval }) => 
                     seriesRef.current.cmf.setData(cmfData);
                 }
             }
+            // İlk yükleme veya veri değişiminde içeriği sığdır
+            // Eğer daha önceden bir zoom/kaydırma yapılmışsa onu korumaya çalışabiliriz
+            // ama en azından bir kez fitContent çağrılmalı ki grafik boş görünmesin.
             chart.timeScale().fitContent();
+
+            // Kullanıcıya tam özgürlük: autoScale hep kapalı kalsın (TradingView manual mode)
+            // Eksenlere çift tıklayarak autoScale açılabilir (axisDoubleClickReset sayesinde)
         }
 
         // --- MUTUAL SYNC ENGINE (Karşılıklı Senkronizasyon) ---
